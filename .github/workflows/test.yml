@@ -1,9 +1,10 @@
 name: test
 
-# Never pull_request: it would run a fork's code on the self-hosted runner.
+# A fork's pull request is tested too: it gets a read-only token and no secrets, on a fresh GitHub-hosted Mac.
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -11,7 +12,7 @@ permissions:
 
 jobs:
   render:
-    runs-on: [self-hosted, macOS, nerd-plugin-tests]
+    runs-on: macos-15
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
