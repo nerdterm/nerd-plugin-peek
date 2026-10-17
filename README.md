@@ -1,7 +1,21 @@
-# peek
+<div align="center">
 
-A plugin for [nerd](https://github.com/nerdterm/nerd): previews for files nerd would otherwise show as binary or raw.
-Select one in the tree and the preview shows:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://nerdterm.dev/brand/nerd-logo-dark.svg">
+  <img src="https://nerdterm.dev/brand/nerd-logo-light.svg" alt="nerd" width="240">
+</picture>
+
+# Peek
+
+**Previews for files nerd would otherwise show as binary or raw.**
+
+[![official nerd plugin](https://img.shields.io/badge/nerd-official_plugin-9fd08a)](https://nerdterm.dev/#/plugin/peek) [![License: MIT](https://img.shields.io/badge/license-MIT-9fd08a)](LICENSE)
+
+[Install](#install) · [In the catalog](https://nerdterm.dev/#/plugin/peek) · [nerd](https://github.com/nerdterm/nerd)
+
+</div>
+
+Select a file in the tree and the preview shows:
 
 | File | Preview |
 |---|---|
