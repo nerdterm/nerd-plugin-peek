@@ -1,0 +1,20 @@
+name: test
+
+# Never pull_request: it would run a fork's code on the self-hosted runner.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: [self-hosted, macOS, nerd-plugin-tests]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sh test/test.sh

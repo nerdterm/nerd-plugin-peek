@@ -1,0 +1,9 @@
+{
+  "name": "peek",
+  "title": "Peek",
+  "version": "1.0.0",
+  "min_nerd": "0.7.0",
+  "exec": { "command": "sh", "args": ["plugin.sh"] },
+  "events": ["preview_request"],
+  "previews": [{ "extensions": ["db", "sqlite", "sqlite3", "zip", "whl", "jar", "tar", "tgz", "gz", "ipynb", "plist", "pem", "crt", "cer", "xlsx"] }]
+}

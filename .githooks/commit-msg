@@ -1,0 +1,6 @@
+#!/bin/sh
+# A private Claude link, or a Claude-Session line, in a commit message is refused.
+if grep -v '^#' "$1" | grep -Eq '^Claude-Session:|claude\.ai/(code|artifact|chat|share|project)'; then
+  echo "commit-msg: the message holds a private Claude link or a Claude-Session line; remove it" >&2
+  exit 1
+fi
