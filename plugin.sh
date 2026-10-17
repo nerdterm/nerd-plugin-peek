@@ -77,7 +77,7 @@ archive() {
     case $f in
         *.zip | *.whl | *.jar)
             # unzip reads its archive argument as a wildcard; a link with a fixed name is read literally.
-            tmp=$(mktemp -d out/z.XXXXXX)
+            tmp=$jdir
             ln -s -- "$f" "$tmp/a.zip"
             out=$(limited unzip -l "$tmp/a.zip")
             rm -rf "$tmp"
@@ -116,7 +116,7 @@ notebook() {
 # answers are shown, never the file's own lines, so a private key in it is never printed.
 certs() {
     f=$1
-    tmp=$(mktemp -d out/c.XXXXXX)
+    tmp=$jdir
     # Only the file's first BYTES are read, once; everything below works on that copy.
     head -c "$BYTES" "$f" > "$tmp/in"
     mkdir "$tmp/certs"
@@ -150,7 +150,7 @@ certs() {
 # Excel: each sheet's name and its first 50 rows of 20 columns, read from the workbook's XML; nothing is evaluated.
 excel() {
     f=$1
-    tmp=$(mktemp -d out/x.XXXXXX)
+    tmp=$jdir
     # unzip reads its archive argument as a wildcard; a link with a fixed name is read literally.
     z=$tmp/a.zip
     ln -s -- "$f" "$z"
@@ -203,6 +203,7 @@ preview() {
     f=$2
     started=$(date +%s)
     lines=$(render "$f" | head -n 2001)
+    rm -rf "$jdir"
     [ -n "$lines" ] || lines=$(say warn "Nothing to show.")
     printf '%s\n' "$lines" | jq -s -c --argjson req "$req" '{Preview: {req: $req, lines: .[0:2000], cut: (length > 2000)}}' | emit
 }
@@ -212,13 +213,17 @@ job() {
     shift
     jturn=$(( $(cat "cur.$jkind" 2>/dev/null || echo 0) + 1 ))
     printf '%s' "$jturn" > "cur.$jkind"
-    eval "old=\${job_$jkind:-}"
+    eval "old=\${job_$jkind:-} olddir=\${dir_$jkind:-}"
     if [ -n "$old" ]; then
         kill "$old" 2>/dev/null
         wait "$old" 2>/dev/null
+        rm -rf "$olddir"
     fi
+    # The job's scratch folder: removed by the job when it ends, by the next job when it kills this one.
+    jdir=out/j.$jkind.$jturn
+    mkdir "$jdir"
     "$@" &
-    eval "job_$jkind=$!"
+    eval "job_$jkind=$! dir_$jkind=$jdir"
 }
 
 nc -U "$NERD_SOCKET" < to-nerd | {

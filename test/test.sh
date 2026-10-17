@@ -53,6 +53,7 @@ ask() {
             (my $p = $file) =~ s/(["\\])/\\$1/g;
             print $c "{\"event\":\"preview_request\",\"req\":$req,\"path\":\"$p\",\"cols\":80,\"rows\":20}\n";
             # The successor goes out once the slow count(*) of the first request runs, not after a fixed delay: under load the job may not have started it yet.
+            if ($ENV{BURST_FILE}) { if ($req == 1) { for (1 .. 100) { last if -s $ENV{BURST_FILE}; select(undef, undef, undef, 0.1) } } else { select(undef, undef, undef, 0.05) } next }
             if ($ENV{BURST}) { if ($req == 1) { for (1 .. 100) { last if grep { /^sqlite3 / && /count\(\*\)/ && index($_, "$ENV{PEEK_TEST_ROOT}/f/slow.db") >= 0 } `ps -axo command=`; select(undef, undef, undef, 0.1) } } else { select(undef, undef, undef, 0.05) } next }
             my $m = <$c>;
             print $m;
@@ -60,7 +61,10 @@ ask() {
         # The plugin is still running here. Only the sqlite3 of this run on its own slow.db is counted, never one of an installed
         # peek or of another run. At the answer to the successor the replaced one must still run (its job was stopped, not
         # waited for); in the last second of 6, just past the 3 s alarm, none may be left.
-        if ($ENV{BURST}) {
+        if ($ENV{BURST_FILE}) {
+            my $m = <$c>; print $m;
+            opendir(my $d, "$ENV{NERD_PLUGIN_DATA}/out"); print "{\"scratch\":" . (scalar grep { /^[cjxz]\./ } readdir $d) . "}\n";
+        } elsif ($ENV{BURST}) {
             my $left = sub { scalar grep { /^sqlite3 / && index($_, "$ENV{PEEK_TEST_ROOT}/f/slow.db") >= 0 } `ps -axo command=` };
             my $m = <$c>; print $m;
             print "{\"alive\":" . $left->() . "}\n";
@@ -147,9 +151,17 @@ printf '<?xml version="1.0"?><worksheet><sheetData><row><c t="inlineStr"><is><t>
 began=$(date +%s)
 out=$(ask "$f/spoof.pem" "$f/huge.cer" "$f/lines.xlsx" "$f/odd.xlsx")
 check "a / inside a name stays in that name" 'text 1 | grep -qx "Subject: CN=evil.com/O=Apple Inc." && ! text 1 | grep -q "^Subject: O="'
-check "a huge .cer: read up to 2 MB, answered, no copy left" 'text 2 | grep -qx "No certificate this can read." && [ "$(ls "$NERD_PLUGIN_DATA/out" | grep -c "^c\.")" = 0 ]'
+check "a huge .cer: read up to 2 MB, answered, no copy left" 'text 2 | grep -qx "No certificate this can read." && [ "$(ls "$NERD_PLUGIN_DATA/out" | grep -c "^[cj]\.")" = 0 ]'
 check "a sheet of two million lines: shown, quickly" 'text 3 | grep -qx "top" && [ $(( $(date +%s) - began )) -lt 30 ]'
 check "past 10 sheets, said so; a cell without an address; &#64;" 'text 4 | grep -qx "The first 10 of 12 sheets are shown." && text 4 | grep -q "^no address  *a@b"'
+
+# A certificate preview stopped by a newer request: a stand-in openssl holds it, and no copy of the file may be left.
+mkdir "$root/oshim"
+printf '#!/bin/sh\necho $$ > "%s/openssl.pid"\nexec /bin/sleep 15\n' "$root" > "$root/oshim/openssl"
+chmod +x "$root/oshim/openssl"
+sed "s#^PATH=/usr/bin:/bin#PATH=$root/oshim:/usr/bin:/bin#" plugin.sh > "$root/plugin-oshim.sh"
+out=$(PLUGIN="$root/plugin-oshim.sh" BURST_FILE="$root/openssl.pid" ask "$f/chain.pem" "$f/note.gz")
+check "a certificate preview stopped by a newer request leaves no copy" 'printf "%s\n" "$out" | jq -e "select(.scratch != null) | .scratch == 0" > /dev/null'
 
 # Guards no earlier test could see.
 # -safe is the only lock against a virtual table in the schema reading another file.
