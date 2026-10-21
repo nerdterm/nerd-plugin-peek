@@ -9,9 +9,9 @@
 
 **Previews for files nerd would otherwise show as binary or raw.**
 
-[![official nerd plugin](https://img.shields.io/badge/nerd-official_plugin-9fd08a)](https://nerdterm.dev/#/plugin/peek) [![License: MIT](https://img.shields.io/badge/license-MIT-9fd08a)](LICENSE)
+[![official nerd plugin](https://img.shields.io/badge/nerd-official_plugin-9fd08a)](https://nerdterm.dev/plugins/peek/) [![License: MIT](https://img.shields.io/badge/license-MIT-9fd08a)](LICENSE)
 
-[Install](#install) · [In the catalog](https://nerdterm.dev/#/plugin/peek) · [nerd](https://github.com/nerdterm/nerd)
+[Install](#install) · [In the catalog](https://nerdterm.dev/plugins/peek/) · [nerd](https://github.com/nerdterm/nerd)
 
 </div>
 
