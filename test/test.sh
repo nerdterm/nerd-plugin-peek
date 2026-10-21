@@ -167,7 +167,8 @@ check "a certificate preview stopped by a newer request leaves no copy" 'printf 
 # -safe is the only lock against a virtual table in the schema reading another file.
 printf 'TOPSECRET-READ' > "$root/zsecret.txt"
 (cd "$root" && zip -q -0 victim.zip zsecret.txt)
-sqlite3 "$f/zvt.db" "CREATE VIRTUAL TABLE z USING zipfile('$root/victim.zip');"
+# A sqlite3 without the zipfile module (macOS 15's) can neither build this sample nor read through it.
+zvt=$(sqlite3 "$f/zvt.db" "CREATE VIRTUAL TABLE z USING zipfile('$root/victim.zip');" 2>&1)
 # A WAL database: opened without immutable, sqlite3 writes -shm and -wal beside it.
 mkdir "$root/wal"
 sqlite3 "$root/wal/w.db" "PRAGMA journal_mode=wal; CREATE TABLE t (x); INSERT INTO t VALUES (1);" > /dev/null
@@ -188,7 +189,10 @@ sqlite3 "$f/ctl2.db" "$(printf 'CREATE TABLE "ev\033[2Jil" (x);')"
 for n in $(seq 21); do cat "$root/c1.pem"; done > "$f/many.pem"
 
 out=$(ask "$f/zvt.db" "$root/wal/w.db" "$f/ctl.db" "$f/ctl.plist" "$root/wild/a[12].zip" "$f/over.ipynb" "$f/odd.ipynb" "$f/many.pem" "$f/note.gz" "$f/over-link.ipynb" "$f/ctl2.db")
-check "sqlite: a virtual table in the schema reads nothing of another file" 'text 1 | grep -q "^z ·" && ! text 1 | grep -q TOPSECRET-READ'
+case $zvt in
+*"no such module: zipfile"*) echo "skip sqlite: a virtual table in the schema reads nothing of another file (this sqlite3 has no zipfile)" ;;
+*) check "sqlite: a virtual table in the schema reads nothing of another file" '[ -z "$zvt" ] && text 1 | grep -q "^z ·" && ! text 1 | grep -q TOPSECRET-READ' ;;
+esac
 check "sqlite: a WAL database leaves nothing beside it" 'text 2 | grep -qx "t · 1 rows" && [ "$(ls "$root/wal" | grep -c -e "-shm" -e "-wal")" = 0 ]'
 check "plist: ESC and U+009B in a value never reach the output" 'text 4 | grep -q "x\[2Jyz" && printf "%s\n" "$out" | jq -e "select(.Preview.req == 4) | [.Preview.lines[][].text | test(\"[\\u0000-\\u001f\\u007f-\\u009f]\")] | any | not" > /dev/null'
 check "sqlite: a table whose name holds a control character is left out" 'text 3 | grep -qx "1 table or view" && ! text 3 | grep -q "il · "'
